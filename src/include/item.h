@@ -3,6 +3,7 @@
 #define ITEM_SIZE 20
 
 struct Item{
+	int id;
 	char name[64];
 	float critChance;
 	int attackDamage;

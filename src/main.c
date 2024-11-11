@@ -5,11 +5,13 @@
 #include "include/build.h"
 #include "include/item.h"
 #include "include/main.h"
+#include "include/generation.h"
+#include "include/quicksort.h"
 #include "include/json_parse.h"
 
 
 //return random new item
-struct Item *getRandomItem(struct AllItems *allItems){
+struct Item *getRandomItem(struct AllItems *allItems, int itemIDs[5]){
 	return &allItems->items[rand()%ITEM_SIZE];
 }
 
@@ -24,16 +26,19 @@ int buildNewGeneration(struct Build *parents, struct Generation *generation, str
 	for(int i=2; i < GENERATION_LENGTH; i++){
 
 		char random = (char) rand();
+
+		struct Build *currBuild = &generation->builds[i];
  		
-		generation->builds[i].items[0] = generation->builds[(random >> 0) & 1].items[0];
-		generation->builds[i].items[1] = generation->builds[(random >> 1) & 1].items[1];
-		generation->builds[i].items[2] = generation->builds[(random >> 2) & 1].items[2];
-		generation->builds[i].items[3] = generation->builds[(random >> 3) & 1].items[3];
-		generation->builds[i].items[4] = generation->builds[(random >> 4) & 1].items[4];
+		currBuild->items[0] = generation->builds[(random >> 0) & 1].items[0];
+		currBuild->items[1] = generation->builds[(random >> 1) & 1].items[1];
+		currBuild->items[2] = generation->builds[(random >> 2) & 1].items[2];
+		currBuild->items[3] = generation->builds[(random >> 3) & 1].items[3];
+		currBuild->items[4] = generation->builds[(random >> 4) & 1].items[4];
 		
 		//if all first 3 bit == 0 mutate
 		if((random>>5) == 0){
-			generation->builds[i].items[random%5] = getRandomItem(allItems);
+			int ids[5] = {currBuild->items[0]->id, currBuild->items[1]->id, currBuild->items[2]->id, currBuild->items[3]->id, currBuild->items[4]->id};
+			generation->builds[i].items[random%5] = getRandomItem(allItems, ids);
 		}
 	}
 
@@ -89,6 +94,8 @@ int main(int argc, char **argv) {
 		
 		createScores(&gen);
 		
+		sortByScores(&gen);
+
 		if(gen.builds[0].score == last_score){
 			same_score++;
 		}else{
