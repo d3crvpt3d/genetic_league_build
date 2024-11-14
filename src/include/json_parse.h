@@ -1,4 +1,5 @@
 #pragma once
+#include <cjson/cJSON.h>
 
 #include "item.h"
 
@@ -28,9 +29,6 @@ struct Champion{
 
 int parseChampStats(char *, struct Champion *);
 
-//where the actual items are stored
-struct AllItems{
-	struct Item items[ITEM_SIZE];
-};
+int mallocAllItems(struct AllItems *, char **);
 
-int getAllItems(struct AllItems *, char **);
+cJSON *getJSONObject(char *);

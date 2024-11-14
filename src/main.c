@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
 	//load all items into allItems Buffer
 	struct AllItems allItems;
 
-	getAllItems(&allItems, argv);
+	mallocAllItems(&allItems, &argv[2]);
 
 	//create starting parents
 	struct Build parents[2];

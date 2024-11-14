@@ -16,3 +16,9 @@ struct Item{
 	int flatMagicPen;
 	float percMagicPen;
 };
+
+//where the actual items are stored
+struct AllItems{
+	int size;
+	struct Item *items;
+};

@@ -4,27 +4,54 @@
 #include <cjson/cJSON.h>
 
 #include "include/json_parse.h"
+#include "include/item.h"
 
-int parseChampStats(char *champ_name, struct Champion *stats){
-
-	struct stat st;
-	if(stat("../data/champion.json", &st) != 0){
+cJSON *getJSONObject(char *filename){
+	
+	//read json item file
+	FILE *fptr = fopen(filename, "r");
+	if(!fptr){
+		fprintf(stderr, "File %s does not exist", filename);
 		return 0;
 	}
 
-	char *json_string = malloc(sizeof(char) * st.st_size);
+	//get size of json string
+	fseek(fptr, 0L, SEEK_END);
+	long size = ftell(fptr);
+	rewind(fptr);
 
-	cJSON *root = cJSON_Parse(json_string);
+	//create space for json string
+	char *buffer = malloc(size + 1);
+	if(!buffer){
+		fprintf(stderr, "cant get Memory of size %ldkB", size/1000);
+		fclose(fptr);
+		return 0;
+	}
 
+	long bytes_read = fread(buffer, 1, size, fptr);
+	buffer[bytes_read] = '\0';
+	fclose(fptr);
+
+	//get JSON Object
+	cJSON *obj = cJSON_Parse(buffer);
+
+	free(buffer);
+	fclose(fptr);
+	return obj;
+}
+
+int parseChampStats(char *champ_name, struct Champion *stats){
+
+	//get specific champion as JSON Object
+	cJSON *root = getJSONObject("data/champion.json");
 	cJSON *data = cJSON_GetObjectItem(root, "data");
 	cJSON *champ = cJSON_GetObjectItem(root, champ_name);
 	cJSON *stats_obj = cJSON_GetObjectItem(root, "stats");
 
 	if (!stats_obj) {
-        fprintf(stderr, "Couldn't find Champion stats in JSON\n");
+        fprintf(stderr, "Couldn't find Stats of %s in data/champion.json\n", champ_name);
         cJSON_Delete(root);
-		free(json_string);
-        return -2;
+        return -3;
     }
 
 	stats->hp = cJSON_GetObjectItem(stats_obj, "hp")->valueint;
@@ -49,15 +76,17 @@ int parseChampStats(char *champ_name, struct Champion *stats){
     stats->attackspeed = cJSON_GetObjectItem(stats_obj, "attackspeed")->valuedouble;
 
 	cJSON_Delete(root);
-	free(json_string);
 	return 0;
 }
 
 //load all items with tag correlating with function from json file
-int getAllItems(struct AllItems *allItems, char **tags){
+int mallocAllItems(struct AllItems *allItems, char **tags){
 	
+	cJSON *obj = getJSONObject("data/item.json");
+
 	//TODO	
 
+	cJSON_Delete(obj);
 	return 0;
 }
 
