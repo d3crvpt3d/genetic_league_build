@@ -45,17 +45,17 @@ int buildNewGeneration(struct Build *parents, struct Generation *generation, str
 	return 0;
 }
 
-float evalFunction(struct Build *b){
+float evalFunction(struct Build *build, struct Champion *champ){
 
 	//TODO
 	
 	return 0;
 }
 
-void createScores(struct Generation *gen){
+void createScores(struct Generation *gen, struct Champion *champ){
 	
 	for(int i = 0; i < GENERATION_LENGTH; i++){
-		gen->builds[i].score = evalFunction(&gen->builds[i]);
+		gen->builds[i].score = evalFunction(&gen->builds[i], champ);
 	}
 
 }
@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 	while(same_score < 64){
 		buildNewGeneration(parents, &gen, &allItems);
 		
-		createScores(&gen);
+		createScores(&gen, &champ);
 		
 		sortByScores(&gen);
 

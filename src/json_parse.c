@@ -1,6 +1,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <cjson/cJSON.h>
 
 #include "include/json_parse.h"
@@ -79,14 +80,137 @@ int parseChampStats(char *champ_name, struct Champion *stats){
 	return 0;
 }
 
+cJSON *filter_by_map11(cJSON *data) {
+    cJSON *filtered_data = cJSON_CreateObject(); // Create a new object for filtered data
+    cJSON *item = NULL;
+
+    // Iterate through the objects in "data"
+    cJSON_ArrayForEach(item, data) {
+        if (cJSON_IsObject(item)) {
+            cJSON *maps = cJSON_GetObjectItem(item, "maps");
+            if (maps != NULL && cJSON_IsObject(maps)) {
+                cJSON *map11 = cJSON_GetObjectItem(maps, "11");
+                if (map11 != NULL && cJSON_IsBool(map11) && cJSON_IsTrue(map11)) {
+                    // Add the item to the filtered_data object
+                    cJSON_AddItemToObject(
+                        filtered_data,
+                        item->string, // Copy the key
+                        cJSON_Duplicate(item, 1)); // Deep copy the value
+                }
+            }
+        }
+    }
+
+    return filtered_data; // Return the filtered object
+}
+
+// Function to check if any tag matches the filter tags
+int has_matching_tags(cJSON *tags, char *filter_tags[], int filter_count) {
+    cJSON *tag = NULL;
+    cJSON_ArrayForEach(tag, tags) {
+        if (cJSON_IsString(tag)) {
+            for (int i = 0; i < filter_count; i++) {
+                if (strcmp(tag->valuestring, filter_tags[i]) == 0) {
+                    return 1; // Found a matching tag
+                }
+            }
+        }
+    }
+    return 0; // No matching tag found
+}
+
+// Function to filter by tags
+cJSON *filter_by_tags(cJSON *filtered_data, char *filter_tags[], int filter_count) {
+    cJSON *result = cJSON_CreateObject(); // To store items that match the tags
+    cJSON *item = NULL;
+
+    // Iterate through the filtered items
+    cJSON_ArrayForEach(item, filtered_data) {
+        cJSON *tags = cJSON_GetObjectItem(item, "tags");
+        if (tags != NULL && cJSON_IsArray(tags) && has_matching_tags(tags, filter_tags, filter_count)) {
+            // Add matching item to the result
+            cJSON_AddItemToObject(result, item->string, cJSON_Duplicate(item, 1));
+        }
+    }
+
+    return result; // Return the new filtered object
+}
+
+struct Item *parse_stats_to_item_array(cJSON *filtered_data, int *item_count) {
+    int count = cJSON_GetArraySize(filtered_data); // Count the items
+    *item_count = count;
+    struct Item *items = malloc(sizeof(struct Item) * count); // Allocate memory for the items
+    if (!items) {
+        printf("Memory allocation failed\n");
+        exit(1);
+    }
+
+    int index = 0;
+    cJSON *item = NULL;
+    cJSON_ArrayForEach(item, filtered_data) {
+        if (!cJSON_IsObject(item)) continue;
+
+        // Parse the "name"
+        cJSON *name = cJSON_GetObjectItem(item, "name");
+        if (cJSON_IsString(name)) {
+            strncpy(items[index].name, name->valuestring, sizeof(items[index].name) - 1);
+            items[index].name[sizeof(items[index].name) - 1] = '\0'; // Ensure null termination
+        } else {
+            items[index].name[0] = '\0'; // Default to empty string
+        }
+
+        // Parse the "stats"
+        cJSON *stats = cJSON_GetObjectItem(item, "stats");
+        if (cJSON_IsObject(stats)) {
+            cJSON *attackDamage = cJSON_GetObjectItem(stats, "FlatPhysicalDamageMod");
+            cJSON *attackSpeed = cJSON_GetObjectItem(stats, "FlatAttackSpeedMod");
+            cJSON *critChance = cJSON_GetObjectItem(stats, "FlatCritChanceMod");
+            cJSON *critChance = cJSON_GetObjectItem(stats, "FlatCritChanceMod");
+            
+			items[index].critChance = c;
+            items[index].attackDamage = cJSON_IsNumber(AttackDamage) ? flatDamage->valuedouble : 0.0f;
+			items[index].attackSpeed = cJSON_IsNumber(AttackSpeed) ? flatDamage->valuedouble : 0.0f;
+			items[index].critDamage = 0.0f;
+			items[index].lethality = 0;
+			items[index].armorPen = 0.0f;
+			items[index].abilityHaste = 0;
+            items[index].abilityPower = 0;
+            items[index].flatMagicPen = 0;
+            items[index].percMagicPen = 0.0f;
+        } else {
+			items[index].critChance = 0.0f;
+			items[index].attackDamage = 0;
+			items[index].attackSpeed = 0.0f;
+			items[index].critDamage = 0.0f;
+			items[index].lethality = 0;
+			items[index].armorPen = 0.0f;
+			items[index].abilityHaste = 0;
+            items[index].abilityPower = 0;
+            items[index].flatMagicPen = 0;
+            items[index].percMagicPen = 0.0f;
+        }
+
+        index++;
+    }
+
+    return items;
+}
+
 //load all items with tag correlating with function from json file
-int mallocAllItems(struct AllItems *allItems, char **tags){
+int mallocAllItems(struct AllItems *allItems, char **tags, int tag_count){
 	
 	cJSON *obj = getJSONObject("data/item.json");
+	cJSON *data = cJSON_GetObjectItem(obj, "data");
 
-	//TODO	
+	cJSON *filtered_data = filter_by_map11(data);
+	cJSON *filtered_by_tags = filter_by_tags(filtered_data, tags, tag_count);
+
+	//parse items to struct and update allItems.size
+	allItems->items = parse_stats_to_item_array(filtered_by_tags, &allItems->size);
+
 
 	cJSON_Delete(obj);
+	cJSON_Delete(data);
 	return 0;
 }
 

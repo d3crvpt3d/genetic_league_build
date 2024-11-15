@@ -29,6 +29,6 @@ struct Champion{
 
 int parseChampStats(char *, struct Champion *);
 
-int mallocAllItems(struct AllItems *, char **);
+int mallocAllItems(struct AllItems *allItems, char **tags, int tag_count);
 
 cJSON *getJSONObject(char *);
